@@ -29,6 +29,7 @@ He creado un **dashboard de finanzas personales completamente funcional** con to
 7. Ve a **Settings > API** y copia:
    - `Project URL`
    - `anon public key`
+   KF52Z8$2sZgkD+?
 
 ### 2. 🔧 Configurar Variables de Entorno:
 
@@ -44,9 +45,16 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima_de_supabase
 1. Ve a **https://vercel.com** y crea una cuenta
 2. Conecta tu repositorio GitHub
 3. Importa este proyecto
-4. En **Environment Variables**, agrega:
-   - `NEXT_PUBLIC_SUPABASE_URL` = tu URL de Supabase
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = tu clave de Supabase
+4. **IMPORTANTE**: En **Environment Variables**, agrega exactamente estas dos variables:
+   
+   **Variable 1:**
+   - Key: `NEXT_PUBLIC_SUPABASE_URL`
+   - Value: `https://tu-proyecto-id.supabase.co` (la URL completa de tu proyecto)
+   
+   **Variable 2:**
+   - Key: `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Value: `eyJ...` (tu clave anónima completa de Supabase)
+   
 5. Haz click en **Deploy**
 
 ### 4. 🎯 ¡LISTO! Tu dashboard estará disponible en tu URL de Vercel
