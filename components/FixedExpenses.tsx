@@ -86,14 +86,28 @@ export default function FixedExpenses({ user, onPaymentMade }: FixedExpensesProp
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error:', error)
+        throw error
+      }
 
       setFixedExpenses([...fixedExpenses, data])
       setShowForm(false)
       resetForm()
-    } catch (error) {
-      console.error('Error agregando gasto fijo:', error)
-      alert('Error al agregar gasto fijo. Por favor, intenta de nuevo.')
+      alert('Gasto fijo agregado exitosamente')
+    } catch (error: any) {
+      console.error('Error completo:', error)
+      let errorMessage = 'Error al agregar gasto fijo.'
+      
+      if (error.message?.includes('relation "fixed_expenses" does not exist')) {
+        errorMessage = 'La tabla de gastos fijos no existe. Por favor, ejecuta el script de migración en Supabase.'
+      } else if (error.message?.includes('violates foreign key constraint')) {
+        errorMessage = 'Error de configuración de base de datos. Verifica que las tablas estén correctamente creadas.'
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`
+      }
+      
+      alert(errorMessage)
     } finally {
       setIsLoading(false)
     }

@@ -27,12 +27,12 @@ He creado un **dashboard de finanzas personales completamente funcional** con to
 2. Crea una cuenta gratuita
 3. Crea un nuevo proyecto
 4. Ve a **SQL Editor** en el panel lateral
-5. Copia y pega TODO el contenido del archivo `database/schema.sql`
+5. **IMPORTANTE**: Copia y pega TODO el contenido del archivo `database/schema.sql`
 6. Haz click en **RUN** para ejecutar el script
-7. Ve a **Settings > API** y copia:
+7. **NUEVO**: También ejecuta el archivo `database/migration_new_tables.sql` para las nuevas funcionalidades
+8. Ve a **Settings > API** y copia:
    - `Project URL`
    - `anon public key`
-   KF52Z8$2sZgkD+?
 
 ### 2. 🔧 Configurar Variables de Entorno:
 

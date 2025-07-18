@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useState, useEffect } from 'react'
+import { supabase, SavingsGoal } from '@/lib/supabase'
 import { categories } from '@/lib/database'
 import { User, Transaction } from '@/lib/supabase'
 
@@ -9,39 +9,128 @@ interface TransactionFormProps {
   user: User
   onTransactionAdded: (transaction: Transaction) => void
   onClose: () => void
+  onSavingsChange?: () => void // Para notificar cambios en ahorros
 }
 
-export default function TransactionForm({ user, onTransactionAdded, onClose }: TransactionFormProps) {
-  const [type, setType] = useState<'income' | 'expense'>('expense')
+export default function TransactionForm({ user, onTransactionAdded, onClose, onSavingsChange }: TransactionFormProps) {
+  const [type, setType] = useState<'income' | 'expense' | 'savings'>('expense')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [isLoading, setIsLoading] = useState(false)
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([])
+  const [selectedGoal, setSelectedGoal] = useState('')
+
+  // Cargar metas de ahorro
+  useEffect(() => {
+    const loadSavingsGoals = async () => {
+      if (type === 'savings') {
+        try {
+          const { data, error } = await supabase
+            .from('savings_goals')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('is_completed', false)
+            .order('name')
+
+          if (error) throw error
+          setSavingsGoals(data || [])
+        } catch (error) {
+          console.error('Error cargando metas de ahorro:', error)
+        }
+      }
+    }
+
+    loadSavingsGoals()
+  }, [type, user.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      const { data: transaction, error } = await supabase
-        .from('transactions')
-        .insert([
-          {
-            user_id: user.id,
-            type,
-            amount: parseFloat(amount),
-            category,
-            description: description || null,
-            date,
-          },
-        ])
-        .select()
-        .single()
+      if (type === 'savings') {
+        // Manejar ahorro
+        if (!selectedGoal) {
+          alert('Por favor selecciona una meta de ahorro')
+          return
+        }
 
-      if (error) throw error
+        // Agregar movimiento a la meta de ahorro
+        const { error: movementError } = await supabase
+          .from('savings_movements')
+          .insert([
+            {
+              savings_goal_id: selectedGoal,
+              user_id: user.id,
+              type: 'deposit',
+              amount: parseFloat(amount),
+              description: description || 'Ahorro desde transacciones',
+              date,
+            },
+          ])
 
-      onTransactionAdded(transaction)
+        if (movementError) throw movementError
+
+        // Actualizar el monto actual en la meta
+        const goal = savingsGoals.find(g => g.id === selectedGoal)
+        if (goal) {
+          const newCurrentAmount = goal.current_amount + parseFloat(amount)
+          const isCompleted = newCurrentAmount >= goal.target_amount
+
+          const { error: updateError } = await supabase
+            .from('savings_goals')
+            .update({ 
+              current_amount: newCurrentAmount,
+              is_completed: isCompleted 
+            })
+            .eq('id', selectedGoal)
+
+          if (updateError) throw updateError
+        }
+
+        // Crear transacción de tipo gasto (porque sale del balance)
+        const { data: transaction, error: transactionError } = await supabase
+          .from('transactions')
+          .insert([
+            {
+              user_id: user.id,
+              type: 'expense',
+              amount: parseFloat(amount),
+              category: 'Ahorros',
+              description: `Ahorro: ${goal?.name || 'Meta de ahorro'} - ${description || ''}`.trim(),
+              date,
+            },
+          ])
+          .select()
+          .single()
+
+        if (transactionError) throw transactionError
+
+        onTransactionAdded(transaction)
+        if (onSavingsChange) onSavingsChange()
+      } else {
+        // Manejar ingreso o gasto normal
+        const { data: transaction, error } = await supabase
+          .from('transactions')
+          .insert([
+            {
+              user_id: user.id,
+              type,
+              amount: parseFloat(amount),
+              category,
+              description: description || null,
+              date,
+            },
+          ])
+          .select()
+          .single()
+
+        if (error) throw error
+        onTransactionAdded(transaction)
+      }
+
       onClose()
     } catch (error) {
       console.error('Error al agregar transacción:', error)
@@ -74,26 +163,36 @@ export default function TransactionForm({ user, onTransactionAdded, onClose }: T
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo
               </label>
-              <div className="flex space-x-4">
+              <div className="flex flex-wrap gap-4">
                 <label className="flex items-center">
                   <input
                     type="radio"
                     value="income"
                     checked={type === 'income'}
-                    onChange={(e) => setType(e.target.value as 'income' | 'expense')}
+                    onChange={(e) => setType(e.target.value as 'income' | 'expense' | 'savings')}
                     className="mr-2"
                   />
-                  <span className="text-green-600">Ingreso</span>
+                  <span className="text-green-600">💰 Ingreso</span>
                 </label>
                 <label className="flex items-center">
                   <input
                     type="radio"
                     value="expense"
                     checked={type === 'expense'}
-                    onChange={(e) => setType(e.target.value as 'income' | 'expense')}
+                    onChange={(e) => setType(e.target.value as 'income' | 'expense' | 'savings')}
                     className="mr-2"
                   />
-                  <span className="text-red-600">Gasto</span>
+                  <span className="text-red-600">💸 Gasto</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="savings"
+                    checked={type === 'savings'}
+                    onChange={(e) => setType(e.target.value as 'income' | 'expense' | 'savings')}
+                    className="mr-2"
+                  />
+                  <span className="text-blue-600">🏦 Ahorro</span>
                 </label>
               </div>
             </div>

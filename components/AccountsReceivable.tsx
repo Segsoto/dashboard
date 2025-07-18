@@ -60,14 +60,28 @@ export default function AccountsReceivable({ user, onPaymentReceived }: Accounts
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error:', error)
+        throw error
+      }
 
       setAccounts([data, ...accounts])
       setShowForm(false)
       resetForm()
-    } catch (error) {
-      console.error('Error agregando cuenta por cobrar:', error)
-      alert('Error al agregar cuenta por cobrar. Por favor, intenta de nuevo.')
+      alert('Cuenta por cobrar agregada exitosamente')
+    } catch (error: any) {
+      console.error('Error completo:', error)
+      let errorMessage = 'Error al agregar cuenta por cobrar.'
+      
+      if (error.message?.includes('relation "accounts_receivable" does not exist')) {
+        errorMessage = 'La tabla de cuentas por cobrar no existe. Por favor, ejecuta el script de migración en Supabase.'
+      } else if (error.message?.includes('violates foreign key constraint')) {
+        errorMessage = 'Error de configuración de base de datos. Verifica que las tablas estén correctamente creadas.'
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`
+      }
+      
+      alert(errorMessage)
     } finally {
       setIsLoading(false)
     }

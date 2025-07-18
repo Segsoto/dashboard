@@ -9,6 +9,7 @@ import StatsCards from '@/components/StatsCards'
 import Charts from '@/components/Charts'
 import FixedExpenses from '@/components/FixedExpenses'
 import AccountsReceivable from '@/components/AccountsReceivable'
+import Savings from '@/components/Savings'
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -147,8 +148,8 @@ export default function Home() {
         {/* Stats Cards */}
         <StatsCards transactions={filteredTransactions} balanceAdjustment={balanceAdjustment} />
 
-        {/* Módulos de Gastos Fijos y Cuentas por Cobrar */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Módulos de Gastos Fijos, Cuentas por Cobrar y Ahorros */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
           <FixedExpenses 
             user={user} 
             onPaymentMade={handleBalanceAdjustment} 
@@ -156,6 +157,9 @@ export default function Home() {
           <AccountsReceivable 
             user={user} 
             onPaymentReceived={handleBalanceAdjustment} 
+          />
+          <Savings 
+            onBalanceChange={handleBalanceAdjustment} 
           />
         </div>
 

@@ -58,6 +58,29 @@ export interface AccountReceivable {
   created_at: string
 }
 
+export interface SavingsGoal {
+  id: string
+  user_id: string
+  name: string
+  target_amount: number
+  current_amount: number
+  description?: string
+  target_date?: string
+  is_completed: boolean
+  created_at: string
+}
+
+export interface SavingsMovement {
+  id: string
+  savings_goal_id: string
+  user_id: string
+  type: 'deposit' | 'withdrawal'
+  amount: number
+  description?: string
+  date: string
+  created_at: string
+}
+
 export interface Category {
   id: string
   name: string
