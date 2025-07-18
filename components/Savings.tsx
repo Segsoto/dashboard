@@ -33,6 +33,9 @@ export default function Savings({ onBalanceChange }: SavingsProps) {
   const loadData = async () => {
     try {
       setIsLoading(true)
+      setError(null)
+      
+      console.log('🔄 Cargando datos de ahorros...')
       
       // Cargar metas de ahorro
       const { data: goalsData, error: goalsError } = await supabase
@@ -42,11 +45,15 @@ export default function Savings({ onBalanceChange }: SavingsProps) {
         .order('created_at', { ascending: false })
 
       if (goalsError) {
+        console.error('❌ Error cargando metas:', goalsError)
+        
         if (goalsError.message.includes('does not exist') || goalsError.code === '42P01') {
-          setError('⚠️ Las tablas de ahorros no existen. Ejecuta la migración de la base de datos primero.')
+          setError('⚠️ Las tablas de ahorros no existen en tu base de datos.\n\n📋 SOLUCIÓN:\n1. Ve a https://app.supabase.com\n2. Selecciona tu proyecto\n3. Ve a SQL Editor\n4. Copia el contenido de database/savings_migration.sql\n5. Pégalo y haz clic en RUN')
           return
         }
-        throw goalsError
+        
+        setError(`❌ Error cargando metas: ${goalsError.message}`)
+        return
       }
 
       // Cargar movimientos de ahorro
@@ -57,19 +64,25 @@ export default function Savings({ onBalanceChange }: SavingsProps) {
         .order('created_at', { ascending: false })
 
       if (movementsError) {
+        console.error('❌ Error cargando movimientos:', movementsError)
+        
         if (movementsError.message.includes('does not exist') || movementsError.code === '42P01') {
           setError('⚠️ Las tablas de ahorros no existen. Ejecuta la migración de la base de datos primero.')
           return
         }
-        throw movementsError
+        
+        setError(`❌ Error cargando movimientos: ${movementsError.message}`)
+        return
       }
 
+      console.log('✅ Datos cargados:', { goals: goalsData?.length, movements: movementsData?.length })
+      
       setGoals(goalsData || [])
       setMovements(movementsData || [])
       setError(null)
     } catch (err) {
-      console.error('Error cargando ahorros:', err)
-      setError('Error al cargar los ahorros')
+      console.error('💥 Error inesperado cargando ahorros:', err)
+      setError(`Error inesperado: ${err instanceof Error ? err.message : 'Error desconocido'}`)
     } finally {
       setIsLoading(false)
     }
@@ -98,18 +111,44 @@ export default function Savings({ onBalanceChange }: SavingsProps) {
         is_completed: false
       }
 
-      const { error } = await supabase
+      console.log('📊 Intentando crear meta de ahorro:', goalData)
+
+      const { data, error } = await supabase
         .from('savings_goals')
         .insert([goalData])
+        .select()
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Error detallado:', error)
+        
+        // Mensajes específicos para diferentes tipos de errores
+        if (error.code === '42P01') {
+          setError('🚨 Tabla "savings_goals" no existe. Ejecuta la migración de base de datos primero.\n\nVe a Supabase → SQL Editor → Ejecuta savings_migration.sql')
+          return
+        }
+        
+        if (error.code === '23503') {
+          setError('🚨 El usuario no existe en la base de datos. Verifica la configuración.')
+          return
+        }
+        
+        if (error.message.includes('violates check constraint')) {
+          setError('🚨 El monto debe ser mayor a 0')
+          return
+        }
+        
+        setError(`❌ Error creando meta: ${error.message}\nCódigo: ${error.code}\nDetalles: ${error.details}`)
+        return
+      }
 
+      console.log('✅ Meta creada exitosamente:', data)
       setNewGoal({ name: '', target_amount: '', description: '', target_date: '' })
       setShowNewGoalForm(false)
+      setError(null)
       loadData()
     } catch (err) {
-      console.error('Error creando meta:', err)
-      setError('Error al crear la meta de ahorro')
+      console.error('💥 Error inesperado:', err)
+      setError(`Error inesperado: ${err instanceof Error ? err.message : 'Error desconocido'}`)
     }
   }
 

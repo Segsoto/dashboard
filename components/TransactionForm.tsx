@@ -27,6 +27,8 @@ export default function TransactionForm({ user, onTransactionAdded, onClose, onS
     const loadSavingsGoals = async () => {
       if (type === 'savings') {
         try {
+          console.log('🔄 Cargando metas de ahorro para transacción...')
+          
           const { data, error } = await supabase
             .from('savings_goals')
             .select('*')
@@ -34,10 +36,22 @@ export default function TransactionForm({ user, onTransactionAdded, onClose, onS
             .eq('is_completed', false)
             .order('name')
 
-          if (error) throw error
+          if (error) {
+            console.error('❌ Error cargando metas:', error)
+            
+            if (error.code === '42P01') {
+              console.warn('⚠️ Tabla savings_goals no existe')
+            }
+            
+            setSavingsGoals([])
+            return
+          }
+          
+          console.log('✅ Metas cargadas:', data?.length || 0)
           setSavingsGoals(data || [])
         } catch (error) {
-          console.error('Error cargando metas de ahorro:', error)
+          console.error('💥 Error inesperado cargando metas:', error)
+          setSavingsGoals([])
         }
       }
     }
@@ -57,6 +71,8 @@ export default function TransactionForm({ user, onTransactionAdded, onClose, onS
           return
         }
 
+        console.log('💰 Procesando ahorro:', { selectedGoal, amount: parseFloat(amount) })
+
         // Agregar movimiento a la meta de ahorro
         const { error: movementError } = await supabase
           .from('savings_movements')
@@ -71,7 +87,16 @@ export default function TransactionForm({ user, onTransactionAdded, onClose, onS
             },
           ])
 
-        if (movementError) throw movementError
+        if (movementError) {
+          console.error('❌ Error creando movimiento de ahorro:', movementError)
+          
+          if (movementError.code === '42P01') {
+            alert('🚨 Las tablas de ahorros no existen. Ejecuta la migración de base de datos primero.')
+            return
+          }
+          
+          throw movementError
+        }
 
         // Actualizar el monto actual en la meta
         const goal = savingsGoals.find(g => g.id === selectedGoal)
@@ -87,7 +112,12 @@ export default function TransactionForm({ user, onTransactionAdded, onClose, onS
             })
             .eq('id', selectedGoal)
 
-          if (updateError) throw updateError
+          if (updateError) {
+            console.error('❌ Error actualizando meta:', updateError)
+            throw updateError
+          }
+          
+          console.log('✅ Meta actualizada:', { newCurrentAmount, isCompleted })
         }
 
         // Crear transacción de tipo gasto (porque sale del balance)
@@ -106,8 +136,12 @@ export default function TransactionForm({ user, onTransactionAdded, onClose, onS
           .select()
           .single()
 
-        if (transactionError) throw transactionError
+        if (transactionError) {
+          console.error('❌ Error creando transacción:', transactionError)
+          throw transactionError
+        }
 
+        console.log('✅ Ahorro procesado exitosamente')
         onTransactionAdded(transaction)
         if (onSavingsChange) onSavingsChange()
       } else {
