@@ -18,6 +18,12 @@ export default function Home() {
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([])
   const [showTransactionForm, setShowTransactionForm] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+  // Calcular balance actual
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
+  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
+  const currentBalance = totalIncome - totalExpenses
 
   // Cargar transacciones del usuario
   const loadTransactions = useCallback(async () => {
@@ -65,11 +71,18 @@ export default function Home() {
     setFilteredTransactions([])
   }
 
+  // Función para disparar el refresh del resumen de ahorros
+  const handleBalanceUpdate = async () => {
+    await loadTransactions()
+    setRefreshTrigger(prev => prev + 1)
+  }
+
   // Agregar nueva transacción
   const handleTransactionAdded = (newTransaction: Transaction) => {
     const updatedTransactions = [newTransaction, ...transactions]
     setTransactions(updatedTransactions)
     setFilteredTransactions(updatedTransactions)
+    setRefreshTrigger(prev => prev + 1)
   }
 
   // Filtrar transacciones
@@ -148,18 +161,26 @@ export default function Home() {
 
         {/* Savings Summary */}
         <div className="mt-8">
-          <SavingsSummary user={user} />
+          <SavingsSummary user={user} refreshTrigger={refreshTrigger} />
         </div>
 
         {/* Fixed Expenses and Accounts Receivable */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
-          <FixedExpenses user={user} onBalanceUpdate={loadTransactions} />
+          <FixedExpenses 
+            user={user} 
+            onBalanceUpdate={handleBalanceUpdate} 
+            currentBalance={currentBalance}
+          />
           <AccountsReceivable user={user} onBalanceUpdate={loadTransactions} />
         </div>
 
         {/* Savings Module */}
         <div className="mt-8">
-          <SavingsModule user={user} onBalanceUpdate={loadTransactions} />
+          <SavingsModule 
+            user={user} 
+            onBalanceUpdate={handleBalanceUpdate} 
+            currentBalance={currentBalance}
+          />
         </div>
 
         {/* Transaction List */}
@@ -177,6 +198,7 @@ export default function Home() {
           user={user}
           onTransactionAdded={handleTransactionAdded}
           onClose={() => setShowTransactionForm(false)}
+          currentBalance={currentBalance}
         />
       )}
     </div>

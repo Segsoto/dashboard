@@ -9,9 +9,10 @@ interface TransactionFormProps {
   user: User
   onTransactionAdded: (transaction: Transaction) => void
   onClose: () => void
+  currentBalance: number
 }
 
-export default function TransactionForm({ user, onTransactionAdded, onClose }: TransactionFormProps) {
+export default function TransactionForm({ user, onTransactionAdded, onClose, currentBalance }: TransactionFormProps) {
   const [type, setType] = useState<'income' | 'expense'>('expense')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
@@ -19,9 +20,46 @@ export default function TransactionForm({ user, onTransactionAdded, onClose }: T
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [isLoading, setIsLoading] = useState(false)
 
+  // Función para formatear números con comas
+  const formatNumberWithCommas = (value: string): string => {
+    const cleaned = value.replace(/[^\d.]/g, '')
+    const parts = cleaned.split('.')
+    const wholePart = parts[0]
+    const decimalPart = parts[1] ? '.' + parts[1].slice(0, 2) : ''
+    const formattedWhole = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    return formattedWhole + decimalPart
+  }
+
+  // Función para obtener valor numérico sin formato
+  const getNumericValue = (formattedValue: string): number => {
+    return parseFloat(formattedValue.replace(/,/g, '')) || 0
+  }
+
+  // Manejar cambio en campo de dinero con formato
+  const handleAmountChange = (value: string) => {
+    const formatted = formatNumberWithCommas(value)
+    setAmount(formatted)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+
+    const numericAmount = getNumericValue(amount)
+    
+    // Validar que el monto sea mayor a 0
+    if (numericAmount <= 0) {
+      alert('El monto debe ser mayor a 0.')
+      setIsLoading(false)
+      return
+    }
+
+    // Validar que hay suficiente dinero para gastos
+    if (type === 'expense' && numericAmount > currentBalance) {
+      alert(`No tienes suficiente dinero para este gasto. Balance actual: ₡${currentBalance.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+      setIsLoading(false)
+      return
+    }
 
     try {
       const { data: transaction, error } = await supabase
@@ -30,7 +68,7 @@ export default function TransactionForm({ user, onTransactionAdded, onClose }: T
           {
             user_id: user.id,
             type,
-            amount: parseFloat(amount),
+            amount: numericAmount,
             category,
             description: description || null,
             date,
@@ -69,6 +107,13 @@ export default function TransactionForm({ user, onTransactionAdded, onClose }: T
             </button>
           </div>
 
+          {/* Indicador de balance disponible */}
+          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-800">
+              <span className="font-medium">Balance disponible:</span> ₡{currentBalance.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -103,13 +148,12 @@ export default function TransactionForm({ user, onTransactionAdded, onClose }: T
                 Monto
               </label>
               <input
-                type="number"
-                step="0.01"
+                type="text"
                 required
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => handleAmountChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                placeholder="0.00"
+                placeholder="₡0.00"
               />
             </div>
 

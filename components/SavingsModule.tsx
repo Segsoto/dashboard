@@ -7,9 +7,10 @@ import { PlusIcon, TrashIcon, BanknotesIcon, ArrowUpIcon, ArrowDownIcon } from '
 interface SavingsModuleProps {
   user: User
   onBalanceUpdate: () => void
+  currentBalance: number
 }
 
-export default function SavingsModule({ user, onBalanceUpdate }: SavingsModuleProps) {
+export default function SavingsModule({ user, onBalanceUpdate, currentBalance }: SavingsModuleProps) {
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([])
   const [showGoalForm, setShowGoalForm] = useState(false)
   const [showTransactionForm, setShowTransactionForm] = useState<string | null>(null)
@@ -25,6 +26,38 @@ export default function SavingsModule({ user, onBalanceUpdate }: SavingsModulePr
     amount: '',
     description: ''
   })
+
+  // Función para formatear números con comas
+  const formatNumberWithCommas = (value: string): string => {
+    // Remover todo excepto números y punto decimal
+    const cleaned = value.replace(/[^\d.]/g, '')
+    
+    // Evitar múltiples puntos decimales
+    const parts = cleaned.split('.')
+    const wholePart = parts[0]
+    const decimalPart = parts[1] ? '.' + parts[1].slice(0, 2) : '' // Máximo 2 decimales
+    
+    // Agregar comas a la parte entera
+    const formattedWhole = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    
+    return formattedWhole + decimalPart
+  }
+
+  // Función para obtener valor numérico sin formato
+  const getNumericValue = (formattedValue: string): number => {
+    return parseFloat(formattedValue.replace(/,/g, '')) || 0
+  }
+
+  // Manejar cambio en campos de dinero con formato
+  const handleAmountChange = (value: string, field: string) => {
+    const formatted = formatNumberWithCommas(value)
+    
+    if (field === 'target_amount') {
+      setGoalFormData(prev => ({ ...prev, target_amount: formatted }))
+    } else if (field === 'transaction_amount') {
+      setTransactionFormData(prev => ({ ...prev, amount: formatted }))
+    }
+  }
 
   // Cargar metas de ahorro
   const loadSavingsGoals = async () => {
@@ -56,6 +89,12 @@ export default function SavingsModule({ user, onBalanceUpdate }: SavingsModulePr
       alert('Por favor completa los campos requeridos')
       return
     }
+
+    const targetAmount = getNumericValue(goalFormData.target_amount)
+    if (targetAmount <= 0) {
+      alert('El monto objetivo debe ser mayor a 0.')
+      return
+    }
     
     try {
       const { error } = await supabase
@@ -63,7 +102,7 @@ export default function SavingsModule({ user, onBalanceUpdate }: SavingsModulePr
         .insert([{
           user_id: user.id,
           name: goalFormData.name,
-          target_amount: parseFloat(goalFormData.target_amount),
+          target_amount: targetAmount,
           target_date: goalFormData.target_date || null,
           description: goalFormData.description || null
         }])
@@ -93,9 +132,20 @@ export default function SavingsModule({ user, onBalanceUpdate }: SavingsModulePr
       return
     }
 
-    const amount = parseFloat(transactionFormData.amount)
+    const amount = getNumericValue(transactionFormData.amount)
     if (amount <= 0) {
       alert('El monto debe ser mayor a 0')
+      return
+    }
+
+    // Validar que hay suficiente dinero para depósitos y retiros
+    if (transactionFormData.type === 'deposit' && amount > currentBalance) {
+      alert(`No tienes suficiente dinero para hacer este depósito. Balance actual: ₡${currentBalance.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+      return
+    }
+    
+    if (transactionFormData.type === 'withdrawal' && amount > currentBalance) {
+      alert(`No tienes suficiente dinero disponible. Balance actual: ₡${currentBalance.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
       return
     }
     
@@ -257,11 +307,10 @@ export default function SavingsModule({ user, onBalanceUpdate }: SavingsModulePr
                 Monto objetivo *
               </label>
               <input
-                type="number"
-                step="0.01"
+                type="text"
                 required
                 value={goalFormData.target_amount}
-                onChange={(e) => setGoalFormData({ ...goalFormData, target_amount: e.target.value })}
+                onChange={(e) => handleAmountChange(e.target.value, 'target_amount')}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                 placeholder="₡0.00"
               />
@@ -335,7 +384,7 @@ export default function SavingsModule({ user, onBalanceUpdate }: SavingsModulePr
                       </h3>
                     </div>
                     <p className="text-sm text-gray-500">
-                      ₡{goal.current_amount.toFixed(2)} de ₡{goal.target_amount.toFixed(2)} 
+                      ₡{goal.current_amount.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} de ₡{goal.target_amount.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
                       ({progress.toFixed(1)}%)
                     </p>
                     {goal.target_date && (
@@ -375,6 +424,13 @@ export default function SavingsModule({ user, onBalanceUpdate }: SavingsModulePr
                 {/* Formulario de transacción */}
                 {showTransactionForm === goal.id && (
                   <form onSubmit={(e) => handleTransactionSubmit(e, goal.id)} className="bg-gray-50 p-3 rounded-lg mt-3">
+                    {/* Indicador de balance disponible */}
+                    <div className="mb-3 p-2 bg-blue-50 rounded border border-blue-200">
+                      <p className="text-xs text-blue-800">
+                        <span className="font-medium">Balance disponible:</span> ₡{currentBalance.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
@@ -390,13 +446,12 @@ export default function SavingsModule({ user, onBalanceUpdate }: SavingsModulePr
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text"
                           required
                           value={transactionFormData.amount}
-                          onChange={(e) => setTransactionFormData({ ...transactionFormData, amount: e.target.value })}
+                          onChange={(e) => handleAmountChange(e.target.value, 'transaction_amount')}
                           className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm"
-                          placeholder="0.00"
+                          placeholder="₡0.00"
                         />
                       </div>
                       <div>

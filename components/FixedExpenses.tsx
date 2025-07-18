@@ -7,9 +7,10 @@ import { PlusIcon, TrashIcon, CalendarIcon, CurrencyDollarIcon } from '@heroicon
 interface FixedExpensesProps {
   user: User
   onBalanceUpdate: () => void
+  currentBalance: number
 }
 
-export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesProps) {
+export default function FixedExpenses({ user, onBalanceUpdate, currentBalance }: FixedExpensesProps) {
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([])
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -19,6 +20,27 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
     description: '',
     due_day: ''
   })
+
+  // Función para formatear números con comas
+  const formatNumberWithCommas = (value: string): string => {
+    const cleaned = value.replace(/[^\d.]/g, '')
+    const parts = cleaned.split('.')
+    const wholePart = parts[0]
+    const decimalPart = parts[1] ? '.' + parts[1].slice(0, 2) : ''
+    const formattedWhole = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    return formattedWhole + decimalPart
+  }
+
+  // Función para obtener valor numérico sin formato
+  const getNumericValue = (formattedValue: string): number => {
+    return parseFloat(formattedValue.replace(/,/g, '')) || 0
+  }
+
+  // Manejar cambio en campo de dinero con formato
+  const handleAmountChange = (value: string) => {
+    const formatted = formatNumberWithCommas(value)
+    setFormData(prev => ({ ...prev, amount: formatted }))
+  }
 
   // Cargar gastos fijos
   const loadFixedExpenses = async () => {
@@ -50,6 +72,12 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
       alert('Por favor completa todos los campos requeridos')
       return
     }
+
+    const amount = getNumericValue(formData.amount)
+    if (amount <= 0) {
+      alert('El monto debe ser mayor a 0.')
+      return
+    }
     
     try {
       const { error } = await supabase
@@ -57,7 +85,7 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
         .insert([{
           user_id: user.id,
           name: formData.name,
-          amount: parseFloat(formData.amount),
+          amount: amount,
           description: formData.description || null,
           due_day: parseInt(formData.due_day)
         }])
@@ -80,6 +108,12 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
 
   // Marcar como pagado y crear transacción
   const markAsPaid = async (expense: FixedExpense) => {
+    // Validar que hay suficiente dinero para el pago
+    if (expense.amount > currentBalance) {
+      alert(`No tienes suficiente dinero para pagar este gasto. Balance actual: ₡${currentBalance.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Monto requerido: ₡${expense.amount.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+      return
+    }
+
     try {
       // Actualizar el gasto fijo
       const { error: updateError } = await supabase
@@ -115,6 +149,7 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
 
       await loadFixedExpenses()
       onBalanceUpdate() // Actualizar balance en el dashboard principal
+      alert('Pago procesado exitosamente!')
     } catch (error) {
       console.error('Error marcando como pagado:', error)
       alert('Error al procesar el pago. Por favor intenta de nuevo.')
@@ -232,11 +267,10 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
                 Monto *
               </label>
               <input
-                type="number"
-                step="0.01"
+                type="text"
                 required
                 value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                onChange={(e) => handleAmountChange(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                 placeholder="₡0.00"
               />
@@ -331,7 +365,7 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
                         {expense.name}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        ₡{expense.amount.toFixed(2)} • Vence día {expense.due_day}
+                        ₡{expense.amount.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • Vence día {expense.due_day}
                       </p>
                       {expense.description && (
                         <p className="text-sm text-gray-400">{expense.description}</p>
@@ -388,7 +422,7 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
               ₡{fixedExpenses
                 .filter(expense => !expense.is_paid)
                 .reduce((sum, expense) => sum + expense.amount, 0)
-                .toFixed(2)}
+                .toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         </div>

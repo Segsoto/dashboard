@@ -20,6 +20,27 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
     expected_date: ''
   })
 
+  // Función para formatear números con comas
+  const formatNumberWithCommas = (value: string): string => {
+    const cleaned = value.replace(/[^\d.]/g, '')
+    const parts = cleaned.split('.')
+    const wholePart = parts[0]
+    const decimalPart = parts[1] ? '.' + parts[1].slice(0, 2) : ''
+    const formattedWhole = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    return formattedWhole + decimalPart
+  }
+
+  // Función para obtener valor numérico sin formato
+  const getNumericValue = (formattedValue: string): number => {
+    return parseFloat(formattedValue.replace(/,/g, '')) || 0
+  }
+
+  // Manejar cambio en campo de dinero con formato
+  const handleAmountChange = (value: string) => {
+    const formatted = formatNumberWithCommas(value)
+    setFormData(prev => ({ ...prev, amount: formatted }))
+  }
+
   // Cargar cuentas por cobrar
   const loadAccountsReceivable = async () => {
     try {
@@ -50,6 +71,12 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
       alert('Por favor completa todos los campos requeridos')
       return
     }
+
+    const amount = getNumericValue(formData.amount)
+    if (amount <= 0) {
+      alert('El monto debe ser mayor a 0.')
+      return
+    }
     
     try {
       const { error } = await supabase
@@ -57,7 +84,7 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
         .insert([{
           user_id: user.id,
           debtor_name: formData.debtor_name,
-          amount: parseFloat(formData.amount),
+          amount: amount,
           reason: formData.reason,
           expected_date: formData.expected_date || null
         }])
@@ -219,11 +246,10 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
                 Monto *
               </label>
               <input
-                type="number"
-                step="0.01"
+                type="text"
                 required
                 value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                onChange={(e) => handleAmountChange(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                 placeholder="₡0.00"
               />
@@ -312,7 +338,7 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
                         {account.debtor_name}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        ₡{account.amount.toFixed(2)} • {account.reason}
+                        ₡{account.amount.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • {account.reason}
                       </p>
                       {account.expected_date && (
                         <p className="text-sm text-gray-400 flex items-center">
@@ -376,7 +402,7 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
               ₡{accountsReceivable
                 .filter(account => !account.is_paid)
                 .reduce((sum, account) => sum + account.amount, 0)
-                .toFixed(2)}
+                .toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         </div>
