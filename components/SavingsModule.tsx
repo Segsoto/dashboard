@@ -207,7 +207,7 @@ export default function SavingsModule({ user, onBalanceUpdate }: SavingsModulePr
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-green-600 font-medium">Total Ahorrado</p>
-              <p className="text-2xl font-bold text-green-700">${totalSaved.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-green-700">₡{totalSaved.toFixed(2)}</p>
             </div>
             <BanknotesIcon className="h-8 w-8 text-green-500" />
           </div>
@@ -217,7 +217,7 @@ export default function SavingsModule({ user, onBalanceUpdate }: SavingsModulePr
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-blue-600 font-medium">Meta Total</p>
-              <p className="text-2xl font-bold text-blue-700">${totalTargets.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-blue-700">₡{totalTargets.toFixed(2)}</p>
             </div>
             <ArrowUpIcon className="h-8 w-8 text-blue-500" />
           </div>
@@ -263,7 +263,7 @@ export default function SavingsModule({ user, onBalanceUpdate }: SavingsModulePr
                 value={goalFormData.target_amount}
                 onChange={(e) => setGoalFormData({ ...goalFormData, target_amount: e.target.value })}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                placeholder="0.00"
+                placeholder="₡0.00"
               />
             </div>
             <div>
@@ -335,7 +335,7 @@ export default function SavingsModule({ user, onBalanceUpdate }: SavingsModulePr
                       </h3>
                     </div>
                     <p className="text-sm text-gray-500">
-                      ${goal.current_amount.toFixed(2)} de ${goal.target_amount.toFixed(2)} 
+                      ₡{goal.current_amount.toFixed(2)} de ₡{goal.target_amount.toFixed(2)} 
                       ({progress.toFixed(1)}%)
                     </p>
                     {goal.target_date && (

@@ -11,7 +11,6 @@ import FixedExpenses from '@/components/FixedExpenses'
 import AccountsReceivable from '@/components/AccountsReceivable'
 import SavingsModule from '@/components/SavingsModule'
 import SavingsSummary from '@/components/SavingsSummary'
-import TestConnection from '@/components/TestConnection'
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -139,9 +138,6 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Test Connection Component (temporary) */}
-        <TestConnection />
-        
         {/* Stats Cards */}
         <StatsCards transactions={filteredTransactions} />
 

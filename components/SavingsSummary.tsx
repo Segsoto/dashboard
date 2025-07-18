@@ -61,14 +61,14 @@ export default function SavingsSummary({ user }: SavingsSummaryProps) {
       <div className="space-y-3">
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-600">Total Ahorrado:</span>
-          <span className="text-xl font-bold text-green-600">${totalSaved.toFixed(2)}</span>
+          <span className="text-xl font-bold text-green-600">₡{totalSaved.toFixed(2)}</span>
         </div>
         
         {savingsGoals.length > 0 && (
           <>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Meta Total:</span>
-              <span className="text-lg font-semibold text-blue-600">${totalTargets.toFixed(2)}</span>
+              <span className="text-lg font-semibold text-blue-600">₡{totalTargets.toFixed(2)}</span>
             </div>
             
             <div className="flex justify-between items-center">

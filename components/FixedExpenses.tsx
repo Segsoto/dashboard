@@ -238,7 +238,7 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                placeholder="0.00"
+                placeholder="₡0.00"
               />
             </div>
             <div>
@@ -331,7 +331,7 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
                         {expense.name}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        ${expense.amount.toFixed(2)} • Vence día {expense.due_day}
+                        ₡{expense.amount.toFixed(2)} • Vence día {expense.due_day}
                       </p>
                       {expense.description && (
                         <p className="text-sm text-gray-400">{expense.description}</p>
@@ -385,7 +385,7 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
           <div className="flex justify-between text-sm text-gray-600">
             <span>Total gastos fijos pendientes:</span>
             <span className="font-medium">
-              ${fixedExpenses
+              ₡{fixedExpenses
                 .filter(expense => !expense.is_paid)
                 .reduce((sum, expense) => sum + expense.amount, 0)
                 .toFixed(2)}

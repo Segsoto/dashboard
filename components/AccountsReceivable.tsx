@@ -225,7 +225,7 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                placeholder="0.00"
+                placeholder="₡0.00"
               />
             </div>
             <div className="md:col-span-2">
@@ -312,7 +312,7 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
                         {account.debtor_name}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        ${account.amount.toFixed(2)} • {account.reason}
+                        ₡{account.amount.toFixed(2)} • {account.reason}
                       </p>
                       {account.expected_date && (
                         <p className="text-sm text-gray-400 flex items-center">
@@ -373,7 +373,7 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
           <div className="flex justify-between text-sm text-gray-600">
             <span>Total por cobrar pendiente:</span>
             <span className="font-medium text-green-600">
-              ${accountsReceivable
+              ₡{accountsReceivable
                 .filter(account => !account.is_paid)
                 .reduce((sum, account) => sum + account.amount, 0)
                 .toFixed(2)}
