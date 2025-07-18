@@ -212,24 +212,50 @@ export default function TransactionForm({ user, onTransactionAdded, onClose, onS
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Categoría
-              </label>
-              <select
-                required
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">Selecciona una categoría</option>
-                {availableCategories.map((cat) => (
-                  <option key={cat.name} value={cat.name}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {type === 'savings' ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Meta de Ahorro
+                </label>
+                <select
+                  required
+                  value={selectedGoal}
+                  onChange={(e) => setSelectedGoal(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">Selecciona una meta</option>
+                  {savingsGoals.map((goal) => (
+                    <option key={goal.id} value={goal.id}>
+                      {goal.name} ({((goal.current_amount / goal.target_amount) * 100).toFixed(1)}% completado)
+                    </option>
+                  ))}
+                </select>
+                {savingsGoals.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    No tienes metas de ahorro activas. Crea una desde el módulo de ahorros.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categoría
+                </label>
+                <select
+                  required
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">Selecciona una categoría</option>
+                  {availableCategories.map((cat) => (
+                    <option key={cat.name} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -246,14 +272,18 @@ export default function TransactionForm({ user, onTransactionAdded, onClose, onS
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descripción (opcional)
+                {type === 'savings' ? 'Nota sobre el ahorro (opcional)' : 'Descripción (opcional)'}
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                placeholder="Descripción de la transacción..."
+                placeholder={
+                  type === 'savings' 
+                    ? "Ej: Ahorro del mes, bonificación extra..."
+                    : "Descripción de la transacción..."
+                }
               />
             </div>
 
