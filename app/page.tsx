@@ -9,6 +9,9 @@ import StatsCards from '@/components/StatsCards'
 import Charts from '@/components/Charts'
 import FixedExpenses from '@/components/FixedExpenses'
 import AccountsReceivable from '@/components/AccountsReceivable'
+import SavingsModule from '@/components/SavingsModule'
+import SavingsSummary from '@/components/SavingsSummary'
+import TestConnection from '@/components/TestConnection'
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -136,6 +139,9 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Test Connection Component (temporary) */}
+        <TestConnection />
+        
         {/* Stats Cards */}
         <StatsCards transactions={filteredTransactions} />
 
@@ -144,10 +150,20 @@ export default function Home() {
           <Charts transactions={filteredTransactions} />
         )}
 
+        {/* Savings Summary */}
+        <div className="mt-8">
+          <SavingsSummary user={user} />
+        </div>
+
         {/* Fixed Expenses and Accounts Receivable */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
           <FixedExpenses user={user} onBalanceUpdate={loadTransactions} />
           <AccountsReceivable user={user} onBalanceUpdate={loadTransactions} />
+        </div>
+
+        {/* Savings Module */}
+        <div className="mt-8">
+          <SavingsModule user={user} onBalanceUpdate={loadTransactions} />
         </div>
 
         {/* Transaction List */}

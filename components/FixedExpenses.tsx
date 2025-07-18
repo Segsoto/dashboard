@@ -46,6 +46,11 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (!formData.name || !formData.amount || !formData.due_day) {
+      alert('Por favor completa todos los campos requeridos')
+      return
+    }
+    
     try {
       const { error } = await supabase
         .from('fixed_expenses')
@@ -53,17 +58,23 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
           user_id: user.id,
           name: formData.name,
           amount: parseFloat(formData.amount),
-          description: formData.description,
+          description: formData.description || null,
           due_day: parseInt(formData.due_day)
         }])
 
-      if (error) throw error
+      if (error) {
+        console.error('Error agregando gasto fijo:', error)
+        alert('Error al agregar el gasto fijo. Por favor intenta de nuevo.')
+        return
+      }
 
       setFormData({ name: '', amount: '', description: '', due_day: '' })
       setShowForm(false)
-      loadFixedExpenses()
+      await loadFixedExpenses()
+      alert('Gasto fijo agregado exitosamente!')
     } catch (error) {
       console.error('Error agregando gasto fijo:', error)
+      alert('Error al agregar el gasto fijo. Por favor intenta de nuevo.')
     }
   }
 
@@ -79,7 +90,11 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
         })
         .eq('id', expense.id)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error('Error actualizando gasto fijo:', updateError)
+        alert('Error al marcar como pagado. Por favor intenta de nuevo.')
+        return
+      }
 
       // Crear transacción automática
       const { error: transactionError } = await supabase
@@ -93,12 +108,16 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
           date: new Date().toISOString().split('T')[0]
         }])
 
-      if (transactionError) throw transactionError
+      if (transactionError) {
+        console.error('Error creando transacción:', transactionError)
+        // No fallar completamente si la transacción falla
+      }
 
-      loadFixedExpenses()
+      await loadFixedExpenses()
       onBalanceUpdate() // Actualizar balance en el dashboard principal
     } catch (error) {
       console.error('Error marcando como pagado:', error)
+      alert('Error al procesar el pago. Por favor intenta de nuevo.')
     }
   }
 
@@ -113,11 +132,16 @@ export default function FixedExpenses({ user, onBalanceUpdate }: FixedExpensesPr
         })
         .eq('id', expense.id)
 
-      if (error) throw error
+      if (error) {
+        console.error('Error marcando como no pagado:', error)
+        alert('Error al desmarcar el pago. Por favor intenta de nuevo.')
+        return
+      }
 
-      loadFixedExpenses()
+      await loadFixedExpenses()
     } catch (error) {
       console.error('Error marcando como no pagado:', error)
+      alert('Error al desmarcar el pago. Por favor intenta de nuevo.')
     }
   }
 

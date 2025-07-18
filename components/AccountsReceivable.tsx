@@ -46,6 +46,11 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (!formData.debtor_name || !formData.amount || !formData.reason) {
+      alert('Por favor completa todos los campos requeridos')
+      return
+    }
+    
     try {
       const { error } = await supabase
         .from('accounts_receivable')
@@ -57,13 +62,19 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
           expected_date: formData.expected_date || null
         }])
 
-      if (error) throw error
+      if (error) {
+        console.error('Error agregando cuenta por cobrar:', error)
+        alert('Error al agregar la cuenta por cobrar. Por favor intenta de nuevo.')
+        return
+      }
 
       setFormData({ debtor_name: '', amount: '', reason: '', expected_date: '' })
       setShowForm(false)
-      loadAccountsReceivable()
+      await loadAccountsReceivable()
+      alert('Cuenta por cobrar agregada exitosamente!')
     } catch (error) {
       console.error('Error agregando cuenta por cobrar:', error)
+      alert('Error al agregar la cuenta por cobrar. Por favor intenta de nuevo.')
     }
   }
 
@@ -79,7 +90,11 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
         })
         .eq('id', account.id)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error('Error actualizando cuenta por cobrar:', updateError)
+        alert('Error al marcar como cobrado. Por favor intenta de nuevo.')
+        return
+      }
 
       // Crear transacción automática
       const { error: transactionError } = await supabase
@@ -93,12 +108,16 @@ export default function AccountsReceivable({ user, onBalanceUpdate }: AccountsRe
           date: new Date().toISOString().split('T')[0]
         }])
 
-      if (transactionError) throw transactionError
+      if (transactionError) {
+        console.error('Error creando transacción:', transactionError)
+        // No fallar completamente si la transacción falla
+      }
 
-      loadAccountsReceivable()
+      await loadAccountsReceivable()
       onBalanceUpdate() // Actualizar balance en el dashboard principal
     } catch (error) {
       console.error('Error marcando como cobrado:', error)
+      alert('Error al procesar el cobro. Por favor intenta de nuevo.')
     }
   }
 
