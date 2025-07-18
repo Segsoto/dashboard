@@ -5,9 +5,10 @@ import { formatCurrency } from '@/lib/utils'
 
 interface StatsCardsProps {
   transactions: Transaction[]
+  balanceAdjustment?: number
 }
 
-export default function StatsCards({ transactions }: StatsCardsProps) {
+export default function StatsCards({ transactions, balanceAdjustment = 0 }: StatsCardsProps) {
   const totalIncome = transactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0)
@@ -16,7 +17,7 @@ export default function StatsCards({ transactions }: StatsCardsProps) {
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0)
 
-  const balance = totalIncome - totalExpenses
+  const balance = totalIncome - totalExpenses + balanceAdjustment
 
   const stats = [
     {

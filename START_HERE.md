@@ -10,6 +10,9 @@ He creado un **dashboard de finanzas personales completamente funcional** con to
 - ✅ **Dashboard principal** con estadísticas en tiempo real
 - ✅ **Visualizaciones** (gráficos de barras y pastel)
 - ✅ **Filtros** por fecha y categoría
+- ✅ **Gastos Mensuales Fijos** con sistema de pagos
+- ✅ **Cuentas por Cobrar** con seguimiento de pagos
+- ✅ **Balance automático** que se actualiza con pagos
 - ✅ **Diseño moderno y responsivo**
 - ✅ **Base de datos en la nube** (Supabase)
 - ✅ **Listo para Vercel**
@@ -66,9 +69,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima_de_supabase
 1. **Acceder**: Ve a tu URL de Vercel
 2. **Login**: Ingresa tu nombre y email
 3. **Agregar transacciones**: Click en "Nueva Transacción"
-4. **Ver estadísticas**: El dashboard se actualiza automáticamente
-5. **Filtrar datos**: Usa los filtros de fecha y categoría
-6. **Analizar**: Revisa los gráficos para entender tus patrones
+4. **Gestionar gastos fijos**: Registra gastos mensuales como alquiler, servicios, etc.
+5. **Marcar pagos**: Usa los checkboxes para marcar gastos fijos pagados
+6. **Cuentas por cobrar**: Registra dinero que te deben
+7. **Cobrar dinero**: Marca como cobrado cuando te paguen
+8. **Ver estadísticas**: El dashboard se actualiza automáticamente
+9. **Filtrar datos**: Usa los filtros de fecha y categoría
+10. **Analizar**: Revisa los gráficos para entender tus patrones
 
 ---
 

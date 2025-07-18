@@ -7,6 +7,8 @@ import TransactionForm from '@/components/TransactionForm'
 import TransactionList from '@/components/TransactionList'
 import StatsCards from '@/components/StatsCards'
 import Charts from '@/components/Charts'
+import FixedExpenses from '@/components/FixedExpenses'
+import AccountsReceivable from '@/components/AccountsReceivable'
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -14,6 +16,7 @@ export default function Home() {
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([])
   const [showTransactionForm, setShowTransactionForm] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [balanceAdjustment, setBalanceAdjustment] = useState(0)
 
   // Cargar transacciones del usuario
   const loadTransactions = useCallback(async () => {
@@ -66,6 +69,13 @@ export default function Home() {
     const updatedTransactions = [newTransaction, ...transactions]
     setTransactions(updatedTransactions)
     setFilteredTransactions(updatedTransactions)
+  }
+
+  // Manejar ajustes de balance desde gastos fijos y cuentas por cobrar
+  const handleBalanceAdjustment = (amount: number) => {
+    setBalanceAdjustment(prev => prev + amount)
+    // Recargar transacciones para reflejar los cambios
+    loadTransactions()
   }
 
   // Filtrar transacciones
@@ -135,7 +145,19 @@ export default function Home() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <StatsCards transactions={filteredTransactions} />
+        <StatsCards transactions={filteredTransactions} balanceAdjustment={balanceAdjustment} />
+
+        {/* Módulos de Gastos Fijos y Cuentas por Cobrar */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <FixedExpenses 
+            user={user} 
+            onPaymentMade={handleBalanceAdjustment} 
+          />
+          <AccountsReceivable 
+            user={user} 
+            onPaymentReceived={handleBalanceAdjustment} 
+          />
+        </div>
 
         {/* Charts */}
         {transactions.length > 0 && (
