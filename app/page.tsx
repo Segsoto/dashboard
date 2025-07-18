@@ -7,6 +7,8 @@ import TransactionForm from '@/components/TransactionForm'
 import TransactionList from '@/components/TransactionList'
 import StatsCards from '@/components/StatsCards'
 import Charts from '@/components/Charts'
+import FixedExpenses from '@/components/FixedExpenses'
+import AccountsReceivable from '@/components/AccountsReceivable'
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -141,6 +143,12 @@ export default function Home() {
         {transactions.length > 0 && (
           <Charts transactions={filteredTransactions} />
         )}
+
+        {/* Fixed Expenses and Accounts Receivable */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
+          <FixedExpenses user={user} onBalanceUpdate={loadTransactions} />
+          <AccountsReceivable user={user} onBalanceUpdate={loadTransactions} />
+        </div>
 
         {/* Transaction List */}
         <div className="mt-8">
