@@ -33,7 +33,6 @@ export const categories = {
     { name: 'Salud', color: '#14b8a6' },
     { name: 'Servicios', color: '#6366f1' },
     { name: 'Compras', color: '#f59e0b' },
-    { name: 'Ahorros', color: '#3b82f6' },
     { name: 'Otros gastos', color: '#64748b' },
   ],
 }

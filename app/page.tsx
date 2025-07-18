@@ -7,9 +7,6 @@ import TransactionForm from '@/components/TransactionForm'
 import TransactionList from '@/components/TransactionList'
 import StatsCards from '@/components/StatsCards'
 import Charts from '@/components/Charts'
-import FixedExpenses from '@/components/FixedExpenses'
-import AccountsReceivable from '@/components/AccountsReceivable'
-import Savings from '@/components/Savings'
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -17,8 +14,6 @@ export default function Home() {
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([])
   const [showTransactionForm, setShowTransactionForm] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [balanceAdjustment, setBalanceAdjustment] = useState(0)
-  const [savingsUpdateTrigger, setSavingsUpdateTrigger] = useState(0)
 
   // Cargar transacciones del usuario
   const loadTransactions = useCallback(async () => {
@@ -71,19 +66,6 @@ export default function Home() {
     const updatedTransactions = [newTransaction, ...transactions]
     setTransactions(updatedTransactions)
     setFilteredTransactions(updatedTransactions)
-  }
-
-  // Manejar ajustes de balance desde gastos fijos y cuentas por cobrar
-  const handleBalanceAdjustment = (amount: number) => {
-    setBalanceAdjustment(prev => prev + amount)
-    // Recargar transacciones para reflejar los cambios
-    loadTransactions()
-  }
-
-  // Manejar cambios en ahorros (para actualizar el trigger)
-  const handleSavingsChange = () => {
-    setSavingsUpdateTrigger(prev => prev + 1)
-    loadTransactions() // También recargar transacciones por si se agregó una nueva
   }
 
   // Filtrar transacciones
@@ -153,26 +135,7 @@ export default function Home() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <StatsCards 
-          transactions={filteredTransactions} 
-          balanceAdjustment={balanceAdjustment}
-          savingsUpdateTrigger={savingsUpdateTrigger}
-        />
-
-        {/* Módulos de Gastos Fijos, Cuentas por Cobrar y Ahorros */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-          <FixedExpenses 
-            user={user} 
-            onPaymentMade={handleBalanceAdjustment} 
-          />
-          <AccountsReceivable 
-            user={user} 
-            onPaymentReceived={handleBalanceAdjustment} 
-          />
-          <Savings 
-            onBalanceChange={handleBalanceAdjustment} 
-          />
-        </div>
+        <StatsCards transactions={filteredTransactions} />
 
         {/* Charts */}
         {transactions.length > 0 && (
@@ -194,7 +157,6 @@ export default function Home() {
           user={user}
           onTransactionAdded={handleTransactionAdded}
           onClose={() => setShowTransactionForm(false)}
-          onSavingsChange={handleSavingsChange}
         />
       )}
     </div>

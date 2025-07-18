@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { supabase, SavingsGoal } from '@/lib/supabase'
+import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
 import { categories } from '@/lib/database'
 import { User, Transaction } from '@/lib/supabase'
 
@@ -9,162 +9,39 @@ interface TransactionFormProps {
   user: User
   onTransactionAdded: (transaction: Transaction) => void
   onClose: () => void
-  onSavingsChange?: () => void // Para notificar cambios en ahorros
 }
 
-export default function TransactionForm({ user, onTransactionAdded, onClose, onSavingsChange }: TransactionFormProps) {
-  const [type, setType] = useState<'income' | 'expense' | 'savings'>('expense')
+export default function TransactionForm({ user, onTransactionAdded, onClose }: TransactionFormProps) {
+  const [type, setType] = useState<'income' | 'expense'>('expense')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [isLoading, setIsLoading] = useState(false)
-  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([])
-  const [selectedGoal, setSelectedGoal] = useState('')
-
-  // Cargar metas de ahorro
-  useEffect(() => {
-    const loadSavingsGoals = async () => {
-      if (type === 'savings') {
-        try {
-          console.log('🔄 Cargando metas de ahorro para transacción...')
-          
-          const { data, error } = await supabase
-            .from('savings_goals')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('is_completed', false)
-            .order('name')
-
-          if (error) {
-            console.error('❌ Error cargando metas:', error)
-            
-            if (error.code === '42P01') {
-              console.warn('⚠️ Tabla savings_goals no existe')
-            }
-            
-            setSavingsGoals([])
-            return
-          }
-          
-          console.log('✅ Metas cargadas:', data?.length || 0)
-          setSavingsGoals(data || [])
-        } catch (error) {
-          console.error('💥 Error inesperado cargando metas:', error)
-          setSavingsGoals([])
-        }
-      }
-    }
-
-    loadSavingsGoals()
-  }, [type, user.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      if (type === 'savings') {
-        // Manejar ahorro
-        if (!selectedGoal) {
-          alert('Por favor selecciona una meta de ahorro')
-          return
-        }
+      const { data: transaction, error } = await supabase
+        .from('transactions')
+        .insert([
+          {
+            user_id: user.id,
+            type,
+            amount: parseFloat(amount),
+            category,
+            description: description || null,
+            date,
+          },
+        ])
+        .select()
+        .single()
 
-        console.log('💰 Procesando ahorro:', { selectedGoal, amount: parseFloat(amount) })
+      if (error) throw error
 
-        // Agregar movimiento a la meta de ahorro
-        const { error: movementError } = await supabase
-          .from('savings_movements')
-          .insert([
-            {
-              savings_goal_id: selectedGoal,
-              user_id: user.id,
-              type: 'deposit',
-              amount: parseFloat(amount),
-              description: description || 'Ahorro desde transacciones',
-              date,
-            },
-          ])
-
-        if (movementError) {
-          console.error('❌ Error creando movimiento de ahorro:', movementError)
-          
-          if (movementError.code === '42P01') {
-            alert('🚨 Las tablas de ahorros no existen. Ejecuta la migración de base de datos primero.')
-            return
-          }
-          
-          throw movementError
-        }
-
-        // Actualizar el monto actual en la meta
-        const goal = savingsGoals.find(g => g.id === selectedGoal)
-        if (goal) {
-          const newCurrentAmount = goal.current_amount + parseFloat(amount)
-          const isCompleted = newCurrentAmount >= goal.target_amount
-
-          const { error: updateError } = await supabase
-            .from('savings_goals')
-            .update({ 
-              current_amount: newCurrentAmount,
-              is_completed: isCompleted 
-            })
-            .eq('id', selectedGoal)
-
-          if (updateError) {
-            console.error('❌ Error actualizando meta:', updateError)
-            throw updateError
-          }
-          
-          console.log('✅ Meta actualizada:', { newCurrentAmount, isCompleted })
-        }
-
-        // Crear transacción de tipo gasto (porque sale del balance)
-        const { data: transaction, error: transactionError } = await supabase
-          .from('transactions')
-          .insert([
-            {
-              user_id: user.id,
-              type: 'expense',
-              amount: parseFloat(amount),
-              category: 'Ahorros',
-              description: `Ahorro: ${goal?.name || 'Meta de ahorro'} - ${description || ''}`.trim(),
-              date,
-            },
-          ])
-          .select()
-          .single()
-
-        if (transactionError) {
-          console.error('❌ Error creando transacción:', transactionError)
-          throw transactionError
-        }
-
-        console.log('✅ Ahorro procesado exitosamente')
-        onTransactionAdded(transaction)
-        if (onSavingsChange) onSavingsChange()
-      } else {
-        // Manejar ingreso o gasto normal
-        const { data: transaction, error } = await supabase
-          .from('transactions')
-          .insert([
-            {
-              user_id: user.id,
-              type,
-              amount: parseFloat(amount),
-              category,
-              description: description || null,
-              date,
-            },
-          ])
-          .select()
-          .single()
-
-        if (error) throw error
-        onTransactionAdded(transaction)
-      }
-
+      onTransactionAdded(transaction)
       onClose()
     } catch (error) {
       console.error('Error al agregar transacción:', error)
@@ -197,36 +74,26 @@ export default function TransactionForm({ user, onTransactionAdded, onClose, onS
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo
               </label>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex space-x-4">
                 <label className="flex items-center">
                   <input
                     type="radio"
                     value="income"
                     checked={type === 'income'}
-                    onChange={(e) => setType(e.target.value as 'income' | 'expense' | 'savings')}
+                    onChange={(e) => setType(e.target.value as 'income' | 'expense')}
                     className="mr-2"
                   />
-                  <span className="text-green-600">💰 Ingreso</span>
+                  <span className="text-green-600">Ingreso</span>
                 </label>
                 <label className="flex items-center">
                   <input
                     type="radio"
                     value="expense"
                     checked={type === 'expense'}
-                    onChange={(e) => setType(e.target.value as 'income' | 'expense' | 'savings')}
+                    onChange={(e) => setType(e.target.value as 'income' | 'expense')}
                     className="mr-2"
                   />
-                  <span className="text-red-600">💸 Gasto</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="savings"
-                    checked={type === 'savings'}
-                    onChange={(e) => setType(e.target.value as 'income' | 'expense' | 'savings')}
-                    className="mr-2"
-                  />
-                  <span className="text-blue-600">🏦 Ahorro</span>
+                  <span className="text-red-600">Gasto</span>
                 </label>
               </div>
             </div>
@@ -246,50 +113,24 @@ export default function TransactionForm({ user, onTransactionAdded, onClose, onS
               />
             </div>
 
-            {type === 'savings' ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Meta de Ahorro
-                </label>
-                <select
-                  required
-                  value={selectedGoal}
-                  onChange={(e) => setSelectedGoal(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="">Selecciona una meta</option>
-                  {savingsGoals.map((goal) => (
-                    <option key={goal.id} value={goal.id}>
-                      {goal.name} ({((goal.current_amount / goal.target_amount) * 100).toFixed(1)}% completado)
-                    </option>
-                  ))}
-                </select>
-                {savingsGoals.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    No tienes metas de ahorro activas. Crea una desde el módulo de ahorros.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Categoría
-                </label>
-                <select
-                  required
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="">Selecciona una categoría</option>
-                  {availableCategories.map((cat) => (
-                    <option key={cat.name} value={cat.name}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Categoría
+              </label>
+              <select
+                required
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">Selecciona una categoría</option>
+                {availableCategories.map((cat) => (
+                  <option key={cat.name} value={cat.name}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -306,18 +147,14 @@ export default function TransactionForm({ user, onTransactionAdded, onClose, onS
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {type === 'savings' ? 'Nota sobre el ahorro (opcional)' : 'Descripción (opcional)'}
+                Descripción (opcional)
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                placeholder={
-                  type === 'savings' 
-                    ? "Ej: Ahorro del mes, bonificación extra..."
-                    : "Descripción de la transacción..."
-                }
+                placeholder="Descripción de la transacción..."
               />
             </div>
 
